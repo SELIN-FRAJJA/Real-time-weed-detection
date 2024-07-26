@@ -1,0 +1,75 @@
+import os
+import shutil
+import cv2
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from roboflow import Roboflow
+from inference_sdk import InferenceHTTPClient
+from sklearn.model_selection import train_test_split
+
+# Paths
+dataset_dir = r'D:/Tomato-weed/dataset'
+image_dir = os.path.join(dataset_dir, 'images', 'original')
+label_dir = os.path.join(dataset_dir, 'labels', 'original')
+train_img_dir = os.path.join(dataset_dir, 'images', 'train')
+val_img_dir = os.path.join(dataset_dir, 'images', 'val')
+test_img_dir = os.path.join(dataset_dir, 'images', 'test')
+train_lbl_dir = os.path.join(dataset_dir, 'labels', 'train')
+val_lbl_dir = os.path.join(dataset_dir, 'labels', 'val')
+test_lbl_dir = os.path.join(dataset_dir, 'labels', 'test')
+
+# Create directories if they do not exist
+for dir_path in [train_img_dir, val_img_dir, test_img_dir, train_lbl_dir, val_lbl_dir, test_lbl_dir]:
+    os.makedirs(dir_path, exist_ok=True)
+
+# Debugging function to list files in directories
+def list_files_in_directory(directory):
+    print(f"Listing files in directory: {directory}")
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            print(os.path.join(root, file))
+
+# List files in the original image directories for debugging
+list_files_in_directory(os.path.join(image_dir, 'tomato'))
+list_files_in_directory(os.path.join(image_dir, 'velvet_leaf'))
+
+# Function to split and move files
+def split_and_move_files(img_dir, lbl_dir, train_img_dir, val_img_dir, test_img_dir, train_lbl_dir, val_lbl_dir, test_lbl_dir, train_size=0.7, val_size=0.2, test_size=0.1):
+    img_files = [f for f in os.listdir(img_dir) if f.lower().endswith('.jpg')]
+    if len(img_files) == 0:
+        print(f"No images found in {img_dir}")
+        return
+    
+    train_files, temp_files = train_test_split(img_files, train_size=train_size, random_state=42)
+    val_files, test_files = train_test_split(temp_files, test_size=test_size/(val_size+test_size), random_state=42)
+    
+    for file_set, dst_img_dir, dst_lbl_dir in zip([train_files, val_files, test_files], [train_img_dir, val_img_dir, test_img_dir], [train_lbl_dir, val_lbl_dir, test_lbl_dir]):
+        for file in file_set:
+            img_src = os.path.normpath(os.path.join(img_dir, file))
+            img_dst = os.path.normpath(os.path.join(dst_img_dir, file))
+            shutil.copy(img_src, img_dst)
+            
+            lbl_file = file.replace('.jpg', '.txt')
+            lbl_src = os.path.normpath(os.path.join(lbl_dir, lbl_file))
+            lbl_dst = os.path.normpath(os.path.join(dst_lbl_dir, lbl_file))
+            
+            if os.path.exists(lbl_src):
+                shutil.copy(lbl_src, lbl_dst)
+            else:
+                print(f"Label file not found: {lbl_src}. Skipping.")
+
+# Split and move files for tomato and velvet leaf
+split_and_move_files(
+    os.path.join(image_dir, 'tomato'),
+    os.path.join(label_dir, 'tomato'),
+    train_img_dir, val_img_dir, test_img_dir,
+    train_lbl_dir, val_lbl_dir, test_lbl_dir
+)
+
+split_and_move_files(
+    os.path.join(image_dir, 'velvet_leaf'),
+    os.path.join(label_dir, 'velvet_leaf'),
+    train_img_dir, val_img_dir, test_img_dir,
+    train_lbl_dir, val_lbl_dir, test_lbl_dir
+)
