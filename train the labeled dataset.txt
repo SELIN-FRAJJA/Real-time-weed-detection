@@ -1,4 +1,0 @@
-!python train.py --img 640 --batch 16 --epochs 600 --data path_to_file/tomato_weed.yaml --weights yolov5s.pt --name tomato_weed_model
-
-# Load a YOLOv5 model (e.g., yolov5s, yolov5m, yolov5l, or yolov5x)
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
